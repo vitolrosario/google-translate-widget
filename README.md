@@ -1,6 +1,9 @@
+
 # Google Translate Widget
 
 A simple, lightweight npm package that provides easy Google Translate integration for any HTML project including Angular, React, Vue, or plain HTML/JavaScript.
+
+
 
 ## 🌐 Live Demo
 
@@ -9,11 +12,17 @@ A simple, lightweight npm package that provides easy Google Translate integratio
 ## Features
 
 - 🎯 **Easy Integration**: Just add a `<div>` and initialize
-- 🎨 **Customizable**: Use your own UI while leveraging Google Translate
+- 🎨 **Customizable**: Use defined styles or use your own UI while leveraging Google Translate (select, buttons, etc.)
 - 🚫 **Clean UI**: Hides all Google Translate visual elements
 - 📱 **Framework Agnostic**: Works with any frontend framework
 - 🌍 **Language Detection**: Automatically detects language changes
 
+
+> **Note:** If you have an element you do **not** want translated, add the `notranslate` class to that element:
+>
+> ```html
+> <div class="notranslate">This will never be translated</div>
+> ```
 
 ## Installation
 
@@ -105,6 +114,20 @@ A ready-to-use dropdown selector that requires no additional coding. Perfect for
 
 ### TranslatorWidgetLayout.CUSTOM  
 Provides `window.translator` object with languages array and onChange function. Gives you complete control over the UI design.
+
+### Using Buttons for Language Switching
+
+If you want to implement buttons to change the language, use `TranslatorWidgetLayout.CUSTOM` and call `window.translator.translateTo(langCode)` when a button is clicked.
+
+**Example:**
+
+```html
+<button onclick="window.translator.translateTo('en')">English</button>
+<button onclick="window.translator.translateTo('es')">Español</button>
+<button onclick="window.translator.translateTo('fr')">Français</button>
+```
+
+See a live example in [my portfolio](https://vrosario-portafolio.web.app).
 
 ## Configuration Options
 
