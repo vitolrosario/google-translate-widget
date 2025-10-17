@@ -2,6 +2,10 @@
 
 A simple, lightweight npm package that provides easy Google Translate integration for any HTML project including Angular, React, Vue, or plain HTML/JavaScript.
 
+## 🌐 Live Demo
+
+**[See Live Demo Here](https://vitolrosario.github.io/google-translate-widget)**
+
 ## Features
 
 - 🎯 **Easy Integration**: Just add a `<div>` and initialize
@@ -102,24 +106,9 @@ window.translator = {
 
 ## Available Languages
 
-The package includes support for these languages:
+The package includes support for 16+ languages including English, Spanish, French, German, Italian, Portuguese, Russian, Chinese, Japanese, Korean, Arabic, Hindi, and more.
 
-- English (en)
-- Spanish (es)
-- French (fr)
-- German (de)
-- Italian (it)
-- Portuguese (pt)
-- Russian (ru)
-- Chinese Simplified (zh-CN)
-- Japanese (ja)
-- Korean (ko)
-- Arabic (ar)
-- Hindi (hi)
-- Bengali (bn)
-- Punjabi (pa)
-- Javanese (jv)
-- Malay (ms)
+**For the complete list of available languages with their codes, see [`languages.js`](./languages.js)**
 
 ## Framework Examples
 
