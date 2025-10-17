@@ -21,6 +21,7 @@ export interface TranslatorWidget {
 
 export enum TranslatorWidgetLayout {
   SIMPLE = 'simple',
+  RADIO = 'radio',
   CUSTOM = 'custom'
 }
 

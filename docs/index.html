@@ -51,26 +51,26 @@
             font-weight: bold;
         }
         
-        button {
-            padding: 10px 20px;
-            margin: 5px;
-            background: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        
-        button:hover {
-            background: #45a049;
-        }
     </style>
 </head>
 <body>
     <h1>Google Translate Widget Demo</h1>
+
     
     <div class="language-selector">
-        <h3>Simple Layout (Built-in)</h3>
+        <h3>Manual Layout Selector</h3>
+        <p>This is a custom layout selector:</p>
+        <select id="layoutSelect" class="custom-select notranslate">
+            <option value="default">SELECT ONE</option>
+            <option value="simple">SIMPLE</option>
+            <option value="radio">RADIO</option>
+        </select>
+
+        <p>if you already selected one, refresh the page to test another</p>
+    </div>
+    
+    <div class="language-selector" id="layout-container" style="display: none;">
+        <h3 id="layout-text">Simple Layout (Built-in)</h3>
         <p>This layout is automatically created by the widget:</p>
         <div id="translate" class="notranslate"></div>
     </div>
@@ -109,33 +109,58 @@
     </div>
 
     <script type="module">
-        import { translatorWidget, TranslatorWidgetLayout } from 'https://unpkg.com/google-translate-widget@latest/index.js';
-        
-        // Simple layout example
-        translatorWidget({
-            element: "translate",
-            includedLanguages: ['en', 'es', 'fr', 'de', 'it', 'pt'],
-            defaultLanguage: 'en',
-            layout: TranslatorWidgetLayout.SIMPLE,
-            onLanguageChange: (language, isDefault) => {
-                const status = document.getElementById('status');
-                const languageNames = {
-                    'en': 'English',
-                    'es': 'Español', 
-                    'fr': 'Français',
-                    'de': 'Deutsch',
-                    'it': 'Italiano',
-                    'pt': 'Português'
-                };
-                
-                status.textContent = `Current Language: ${languageNames[language] || language}`;
-                console.log('Language changed to:', language, 'Is default:', isDefault);
-            }
-        });
+        import { translatorWidget, TranslatorWidgetLayout } from '../index.js';
 
         // Custom layout example (for the manual select)
         document.getElementById('languageSelect').addEventListener('change', function(e) {
             window.translator.onChange(e);
+        });
+
+        // Layout selector example
+        document.getElementById('layoutSelect').addEventListener('change', function(e) {
+            const layout = e.target.value;
+            e.target.disabled = true;
+            const translateDiv = document.getElementById('translate');
+            translateDiv.innerHTML = ''; // Clear previous widget
+
+            document.getElementById('layout-text').textContent = `${layout.charAt(0).toUpperCase() + layout.slice(1)} Layout (Built-in)`;
+
+            document.getElementById('layout-container').style.display = 'block';
+
+            let selectedLayout;
+            switch(layout) {
+                case 'simple':
+                    selectedLayout = TranslatorWidgetLayout.SIMPLE;
+                    break;
+                case 'radio':
+                    selectedLayout = TranslatorWidgetLayout.RADIO;
+                    break;
+                case 'custom':
+                    selectedLayout = TranslatorWidgetLayout.CUSTOM;
+                    break;
+                default:
+                    selectedLayout = TranslatorWidgetLayout.SIMPLE;
+            }
+            
+            translatorWidget({
+                element: "translate",
+                includedLanguages: ['en', 'es', 'fr', 'de', 'it', 'pt', 'ko', 'ja'],
+                defaultLanguage: 'en',
+                layout: selectedLayout,
+                onLanguageChange: (language, isDefault) => {
+                    const status = document.getElementById('status');
+                    const languageNames = {
+                        'en': 'English',
+                        'es': 'Español', 
+                        'fr': 'Français',
+                        'de': 'Deutsch',
+                        'it': 'Italiano',
+                        'pt': 'Português'
+                    };
+                    
+                    status.textContent = `Current Language: ${languageNames[language] || language}`;
+                }
+            });
         });
 
     </script>

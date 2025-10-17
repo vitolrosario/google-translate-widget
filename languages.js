@@ -10,7 +10,7 @@ export default [
   { code: "bn", name: "Bengali" },
   { code: "bs", name: "Bosnian" },
   { code: "bg", name: "Bulgarian" },
-  { code: "my", name: "Burmese" },
+  { code: "my", name: "Burmese" }, // Consolidated duplicate code
   { code: "ca", name: "Catalan" },
   { code: "ceb", name: "Cebuano" },
   { code: "ny", name: "Chichewa" },
@@ -67,7 +67,6 @@ export default [
   { code: "mi", name: "Maori" },
   { code: "mr", name: "Marathi" },
   { code: "mn", name: "Mongolian" },
-  { code: "my", name: "Myanmar (Burmese)" },
   { code: "ne", name: "Nepali" },
   { code: "no", name: "Norwegian" },
   { code: "or", name: "Odia (Oriya)" },

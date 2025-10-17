@@ -112,8 +112,17 @@ document.getElementById('myLanguageSelect').addEventListener('change', (e) => {
 ### TranslatorWidgetLayout.SIMPLE
 A ready-to-use dropdown selector that requires no additional coding. Perfect for quick integration.
 
+![Project Screenshot](assets/simple_layout.png)
+
+### TranslatorWidgetLayout.RADIO
+A simple radio button layout for language selection. Ideal for forms or when space is limited.
+
+![Project Screenshot](assets/radio_layout.png)
+
 ### TranslatorWidgetLayout.CUSTOM  
 Provides `window.translator` object with languages array and onChange function. Gives you complete control over the UI design.
+
+![Project Screenshot](assets/custom_layout.png)
 
 ### Using Buttons for Language Switching
 
@@ -147,8 +156,8 @@ When using `TranslatorWidgetLayout.CUSTOM`, the widget exposes `window.translato
 window.translator = {
   translateTo: (langCode) => void,           // Translate to specific language
   getCurrentLanguage: () => string,          // Get current language code
-  getAvailableLanguages: () => Language[],                     // Array of available languages
-  onChange: (event|langCode) => void         // Easy event handler for your UI
+getAvailableLanguages: () => Language[],     // Array of available languages
+  onChange: (event|langCode) => void         // Easy event handler for your UI when using custom layout
 }
 ```
 
@@ -159,6 +168,26 @@ The package includes support for 16+ languages including English, Spanish, Frenc
 **For the complete list of available languages with their codes, see [`languages.js`](./languages.js)**
 
 ## Framework Examples
+
+### React Example (Simple Layout)
+
+```jsx
+import React, { useEffect } from 'react';
+import { translatorWidget, TranslatorWidgetLayout } from 'google-translate-widget';
+
+function SimpleTranslateComponent() {
+  useEffect(() => {
+    translatorWidget({
+      element: "translate",
+      includedLanguages: ['en', 'es', 'fr', 'de'],
+      defaultLanguage: 'en',
+      layout: TranslatorWidgetLayout.SIMPLE
+    });
+  }, []);
+
+  return <div id="translate"></div>;
+}
+```
 
 ### React Example (Custom Layout)
 
@@ -204,23 +233,25 @@ function TranslateComponent() {
 }
 ```
 
-### React Example (Simple Layout)
+### Angular Example (Simple Layout)
 
-```jsx
-import React, { useEffect } from 'react';
+```typescript
+import { Component, OnInit } from '@angular/core';
 import { translatorWidget, TranslatorWidgetLayout } from 'google-translate-widget';
 
-function SimpleTranslateComponent() {
-  useEffect(() => {
+@Component({
+  selector: 'app-simple-translate',
+  template: `<div id="translate"></div>`
+})
+export class SimpleTranslateComponent implements OnInit {
+  ngOnInit() {
     translatorWidget({
       element: "translate",
       includedLanguages: ['en', 'es', 'fr', 'de'],
       defaultLanguage: 'en',
       layout: TranslatorWidgetLayout.SIMPLE
     });
-  }, []);
-
-  return <div id="translate"></div>;
+  }
 }
 ```
 
@@ -271,75 +302,6 @@ export class TranslateComponent implements OnInit {
     }
   }
 }
-```
-
-### Angular Example (Simple Layout)
-
-```typescript
-import { Component, OnInit } from '@angular/core';
-import { translatorWidget, TranslatorWidgetLayout } from 'google-translate-widget';
-
-@Component({
-  selector: 'app-simple-translate',
-  template: `<div id="translate"></div>`
-})
-export class SimpleTranslateComponent implements OnInit {
-  ngOnInit() {
-    translatorWidget({
-      element: "translate",
-      includedLanguages: ['en', 'es', 'fr', 'de'],
-      defaultLanguage: 'en',
-      layout: TranslatorWidgetLayout.SIMPLE
-    });
-  }
-}
-```
-
-### Vue Example
-
-```vue
-<template>
-  <div>
-    <div id="google_translate"></div>
-    <select v-model="currentLanguage" @change="handleLanguageChange">
-      <option value="en">English</option>
-      <option value="es">Español</option>
-      <option value="fr">Français</option>
-      <option value="de">Deutsch</option>
-    </select>
-  </div>
-</template>
-
-<script>
-import initGoogleTranslate from 'google-translate-widget';
-
-export default {
-  data() {
-    return {
-      translator: null,
-      currentLanguage: 'en'
-    };
-  },
-  mounted() {
-    this.translator = initGoogleTranslate({
-      includedLanguages: ['en', 'es', 'fr', 'de'],
-      defaultLanguage: 'en',
-      onLanguageChange: (lang) => {
-        this.currentLanguage = lang;
-      }
-    });
-  },
-  methods: {
-    handleLanguageChange() {
-      if (this.currentLanguage === 'en') {
-        this.translator.goBackToOriginal();
-      } else {
-        this.translator.translateTo(this.currentLanguage);
-      }
-    }
-  }
-};
-</script>
 ```
 
 ## API Reference
