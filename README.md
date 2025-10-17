@@ -14,7 +14,32 @@ A simple, lightweight npm package that provides easy Google Translate integratio
 - 📱 **Framework Agnostic**: Works with any frontend framework
 - 🌍 **Language Detection**: Automatically detects language changes
 
+
 ## Installation
+
+### For Pure HTML (No Build Tools)
+
+```html
+<div id="translate" class="notranslate"></div>
+
+<script type="module">
+  import { translatorWidget, TranslatorWidgetLayout } from 'https://unpkg.com/google-translate-widget@latest/index.js';
+    
+  translatorWidget({
+    element: "translate",
+    includedLanguages: ['en', 'es', 'fr', 'de', 'it', 'pt'],
+    defaultLanguage: 'en',
+    layout: TranslatorWidgetLayout.SIMPLE,
+  });
+
+  // If you have a custom select:
+  document.getElementById('languageSelect')?.addEventListener('change', function(e) {
+    window.translator.onChange(e);
+  });
+</script>
+```
+
+### For Frameworks (React, Angular, Vue, etc.)
 
 ```bash
 npm install google-translate-widget
