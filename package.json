@@ -1,0 +1,28 @@
+{
+  "name": "google-translate-widget",
+  "version": "1.0.0",
+  "description": "Easy-to-use Google Translate widget for any HTML project (Angular, React, Vue, etc.)",
+  "type": "module",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "keywords": [
+    "google",
+    "translate",
+    "translation",
+    "widget",
+    "multilingual",
+    "i18n"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vitolrosario/google-translate-widget.git"
+  },
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "languages.js",
+    "README.md"
+  ]
+}

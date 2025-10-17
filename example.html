@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Translate Widget Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .language-selector {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f5f5f5;
+            border-radius: 8px;
+        }
+        
+        .custom-select {
+            padding: 10px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            background: white;
+            cursor: pointer;
+            min-width: 150px;
+        }
+        
+        .custom-select:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+        
+        .content {
+            margin: 30px 0;
+            padding: 20px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        
+        .status {
+            margin: 10px 0;
+            padding: 10px;
+            background: #e3f2fd;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        button:hover {
+            background: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>Google Translate Widget Demo</h1>
+    
+    <div class="language-selector">
+        <h3>Simple Layout (Built-in)</h3>
+        <p>This layout is automatically created by the widget:</p>
+        <div id="translate" class="notranslate"></div>
+    </div>
+    
+    <div class="language-selector">
+        <h3>Custom Layout Example</h3>
+        <p>Create your own design using window.translator.languages and window.translator.onChange:</p>
+        <select id="languageSelect" class="custom-select notranslate">
+            <option value="en">🇺🇸 English</option>
+            <option value="es">🇪🇸 Español</option>
+            <option value="fr">🇫🇷 Français</option>
+            <option value="de">🇩🇪 Deutsch</option>
+            <option value="it">🇮🇹 Italiano</option>
+            <option value="pt">🇵🇹 Português</option>
+        </select>
+        
+        <div class="status" id="status">Current Language: English</div>
+        
+        <button onclick="translator.goBackToOriginal()">Reset to Original</button>
+    </div>
+    
+    <div class="content">
+        <h2>Sample Content to Translate</h2>
+        <p>This is a sample paragraph that will be translated when you select a different language from the dropdown above. The Google Translate widget is hidden, and you can use your own custom UI to control translations.</p>
+        
+        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.</p>
+        
+        <h3>Features</h3>
+        <ul>
+            <li>Easy integration with any HTML project</li>
+            <li>Support for Angular, React, Vue, and vanilla JavaScript</li>
+            <li>Clean, customizable interface</li>
+            <li>Automatic language detection</li>
+            <li>No visible Google Translate UI elements</li>
+        </ul>
+    </div>
+
+    <script type="module">
+        import { translatorWidget, TranslatorWidgetLayout } from './index.js';
+
+        // Simple layout example
+        translatorWidget({
+            element: "translate",
+            includedLanguages: ['en', 'es', 'fr', 'de', 'it', 'pt'],
+            defaultLanguage: 'en',
+            layout: TranslatorWidgetLayout.SIMPLE,
+            onLanguageChange: (language, isDefault) => {
+                const status = document.getElementById('status');
+                const languageNames = {
+                    'en': 'English',
+                    'es': 'Español', 
+                    'fr': 'Français',
+                    'de': 'Deutsch',
+                    'it': 'Italiano',
+                    'pt': 'Português'
+                };
+                
+                status.textContent = `Current Language: ${languageNames[language] || language}`;
+                console.log('Language changed to:', language, 'Is default:', isDefault);
+            }
+        });
+
+        // Custom layout example (for the manual select)
+        document.getElementById('languageSelect').addEventListener('change', function(e) {
+            window.translator.onChange(e);
+        });
+
+    </script>
+</body>
+</html>
