@@ -141,7 +141,7 @@ function renderRadioLayout(elementId) {
   btn.type = 'button';
   btn.className = 'translator-radio-btn';
   btn.setAttribute('aria-haspopup', 'listbox');
-  btn.innerHTML = `<img src="../assets/icons/globe.png" alt="Globe" class="globe" style="width:16px;height:16px;vertical-align:middle;" /><span class="code">${currentLanguage.toUpperCase()}</span>`;
+  btn.innerHTML = `<img src="https://raw.githubusercontent.com/vitolrosario/google-translate-widget/main/assets/icons/globe.png" alt="Globe" class="globe" style="width:16px;height:16px;vertical-align:middle;" /><span class="code">${currentLanguage.toUpperCase()}</span>`;
   const list = document.createElement('div');
   list.className = 'translator-radio-list';
   list.style.display = 'none';
