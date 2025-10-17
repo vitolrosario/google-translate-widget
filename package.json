@@ -1,6 +1,6 @@
 {
   "name": "google-translate-widget",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Easy-to-use Google Translate widget for any HTML project (Angular, React, Vue, etc.)",
   "type": "module",
   "main": "index.js",
