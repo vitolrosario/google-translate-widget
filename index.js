@@ -27,6 +27,16 @@ export function translatorWidget(config = {}) {
   userOnLanguageChange = onLanguageChange;
   availableLanguages = languages.filter(lang => includedLanguages.includes(lang.code));
 
+  // Create a hidden helper div for Google Translate engine
+  // This keeps Google's internal elements separate from the user's visible container
+  const helperId = '__gtw_helper';
+  if (!document.getElementById(helperId)) {
+    const helperDiv = document.createElement('div');
+    helperDiv.id = helperId;
+    helperDiv.style.display = 'none';
+    document.body.appendChild(helperDiv);
+  }
+
   const scriptId = 'google-translate-script';
   if (!document.getElementById(scriptId)) {
     const script = document.createElement('script');
@@ -40,9 +50,9 @@ export function translatorWidget(config = {}) {
       pageLanguage: defaultLanguage,
       includedLanguages: includedLanguages.join(','),
       layout: 'dropdown'
-    }, element);
+    }, helperId);
 
-    hideGoogleElements(element);
+    hideGoogleElements();
 
     setTimeout(() => {
       observeLanguageChanges();
@@ -199,7 +209,7 @@ function renderRadioLayout(elementId) {
   wrapper.appendChild(btn);
   wrapper.appendChild(list);
 
-  container.parentNode.insertBefore(wrapper, container.nextSibling);
+  container.appendChild(wrapper);
 
   function alignListWidth() {
     try {
@@ -255,7 +265,7 @@ function setupCustomLayout() {
   // Users will create their own UI and use window.translator.onChange
 }
 
-function hideGoogleElements(element) {
+function hideGoogleElements() {
   const style = document.createElement('style');
   style.innerHTML = `
     .skiptranslate iframe {
@@ -271,8 +281,8 @@ function hideGoogleElements(element) {
       box-shadow: none !important;
     }
     
-    #${element} {
-      display: none;
+    #__gtw_helper {
+      display: none !important;
     }
     
     .goog-te-banner-frame.skiptranslate {
