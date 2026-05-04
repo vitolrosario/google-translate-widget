@@ -71,6 +71,22 @@ export function translatorWidget(config = {}) {
     onChange: (event) => {
       const langCode = event.target ? event.target.value : event;
       window.translator.translateTo(langCode);
+    },
+    /**
+     * Move the widget UI into the given DOM element.
+     * Useful for SPAs where the container changes on route navigation.
+     * @param {string|HTMLElement} target - Element ID or DOM element to mount into
+     */
+    mountTo: (target) => {
+      const wrapper = document.querySelector('.translator-radio-wrapper')
+        || document.querySelector('.translator-widget-simple');
+      if (!wrapper) return false;
+
+      const el = typeof target === 'string' ? document.getElementById(target) : target;
+      if (!el) return false;
+
+      el.appendChild(wrapper);
+      return true;
     }
   }
 
