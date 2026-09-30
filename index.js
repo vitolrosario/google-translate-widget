@@ -27,6 +27,9 @@ export function translatorWidget(config = {}) {
   userOnLanguageChange = onLanguageChange;
   availableLanguages = languages.filter(lang => includedLanguages.includes(lang.code));
 
+  // Keep the original spacing while only the text is translated
+  preserveOriginalSpacing();
+
   // Create a hidden helper div for Google Translate engine
   // This keeps Google's internal elements separate from the user's visible container
   const helperId = '__gtw_helper';
@@ -56,6 +59,10 @@ export function translatorWidget(config = {}) {
 
     setTimeout(() => {
       observeLanguageChanges();
+
+      // Google restores the last selected language from its own cookie when the page
+      // loads, without dispatching a change event, so the state has to be seeded here
+      syncLanguageFromGoogle();
 
       renderLayouts(layout, element, width, height);
 
@@ -281,6 +288,113 @@ function setupCustomLayout() {
   // Users will create their own UI and use window.translator.onChange
 }
 
+const EDGE_WHITESPACE_SKIP = '#__gtw_helper, .skiptranslate, .notranslate, .translator-radio-wrapper, .translator-widget-simple';
+let spacingObserver = null;
+
+/**
+ * Google Translate replaces a text node with a <font> wrapper and drops the whitespace
+ * that separated it from the previous/next element (icons, labels...), which collapses
+ * the gap and changes the text metrics. Moving that whitespace into its own text node
+ * before Google runs keeps the original spacing exactly, no matter the language.
+ */
+function preserveOriginalSpacing() {
+  extractEdgeWhitespace(document.body);
+  injectSpacingStyles();
+
+  if (spacingObserver || !document.body) return;
+
+  spacingObserver = new MutationObserver((mutations) => {
+    mutations.forEach(mutation => {
+      if (mutation.type === 'characterData') {
+        extractNodeEdgeWhitespace(mutation.target);
+        return;
+      }
+
+      mutation.addedNodes.forEach(node => {
+        if (node.nodeType === Node.ELEMENT_NODE) {
+          extractEdgeWhitespace(node);
+        } else if (node.nodeType === Node.TEXT_NODE) {
+          extractNodeEdgeWhitespace(node);
+        }
+      });
+    });
+  });
+  spacingObserver.observe(document.body, { childList: true, subtree: true, characterData: true });
+}
+
+function extractEdgeWhitespace(root) {
+  if (!root) return;
+
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+  let node;
+  while ((node = walker.nextNode())) {
+    extractNodeEdgeWhitespace(node);
+  }
+}
+
+function extractNodeEdgeWhitespace(text) {
+  if (!text || text.nodeType !== Node.TEXT_NODE) return;
+
+  const value = text.nodeValue;
+  if (!value || !value.trim()) return;
+  if (isExcludedFromSpacing(text)) return;
+
+  const prev = text.previousSibling;
+  const next = text.nextSibling;
+  const leadMatch = /^\s+/.exec(value);
+  const trailMatch = /\s+$/.exec(value);
+  const leadingElement = leadMatch && prev && prev.nodeType === Node.ELEMENT_NODE;
+  const trailingElement = trailMatch && next && next.nodeType === Node.ELEMENT_NODE;
+
+  if (!leadingElement && !trailingElement) return;
+
+  let core = value;
+  let leading = '';
+  let trailing = '';
+
+  if (leadingElement) {
+    leading = leadMatch[0];
+    core = core.slice(leading.length);
+  }
+
+  if (trailingElement) {
+    const match = /\s+$/.exec(core);
+    trailing = match ? match[0] : '';
+    if (trailing) core = core.slice(0, core.length - trailing.length);
+  }
+
+  if (!core) return;
+
+  const parent = text.parentNode;
+  text.nodeValue = core;
+
+  if (leading) parent.insertBefore(document.createTextNode(leading), text);
+  if (trailing) parent.insertBefore(document.createTextNode(trailing), text.nextSibling);
+}
+
+function isExcludedFromSpacing(node) {
+  const el = node.nodeType === Node.ELEMENT_NODE ? node : node.parentNode;
+  if (!el || typeof el.closest !== 'function') return true;
+
+  return !!el.closest(EDGE_WHITESPACE_SKIP);
+}
+
+function injectSpacingStyles() {
+  if (document.getElementById('gtw-preserve-spacing-style')) return;
+
+  const style = document.createElement('style');
+  style.id = 'gtw-preserve-spacing-style';
+  style.innerHTML = `
+    /* Google wraps the translated text in <font style="vertical-align:inherit">, which picks
+       up the container's vertical-align (e.g. .btn { vertical-align: middle }) and pushes the
+       text off the icon baseline. Pin it back to the baseline like the original text. */
+    font[style*="vertical-align"] {
+      vertical-align: baseline !important;
+    }
+  `;
+  document.head.appendChild(style);
+}
+
 function hideGoogleElements() {
   const style = document.createElement('style');
   style.innerHTML = `
@@ -360,10 +474,64 @@ function goBackToOriginal() {
   }
 }
 
+function getPersistedLanguage() {
+  let raw = '';
+
+  try {
+    const cookie = document.cookie.match(/(?:^|;\s*)googtrans=([^;]+)/);
+    if (cookie) {
+      raw = decodeURIComponent(cookie[1]);
+    } else if (window.localStorage) {
+      raw = window.localStorage.getItem('googtrans') || '';
+    }
+  } catch (e) {
+    return '';
+  }
+
+  if (!raw) return '';
+
+  if (raw.charAt(0) === '{') {
+    try {
+      return JSON.parse(raw).to || '';
+    } catch (e) {
+      return '';
+    }
+  }
+
+  const segments = raw.split('/');
+  return segments[segments.length - 1] || '';
+}
+
+/**
+ * Google applies the language persisted in its own cookie on page load without firing
+ * a change event on the combo, so the widget would otherwise always start on the
+ * default language. Seeds currentLanguage from that persisted state and repaints.
+ */
+function syncLanguageFromGoogle() {
+  const select = document.querySelector('.goog-te-combo');
+  const persisted = (select && select.value) || getPersistedLanguage();
+
+  if (!persisted || persisted === currentLanguage) return;
+
+  const isAvailable = availableLanguages.some(lang => lang.code === persisted);
+  const nextLanguage = isAvailable ? persisted : defaultLanguage;
+
+  if (nextLanguage === currentLanguage) return;
+
+  currentLanguage = nextLanguage;
+  updateLayouts();
+
+  if (userOnLanguageChange) {
+    try { userOnLanguageChange(currentLanguage, currentLanguage === defaultLanguage); } catch (e) { /* noop */ }
+  }
+}
+
 function observeLanguageChanges() {
   const checkForSelect = () => {
     const select = document.querySelector('.goog-te-combo');
     if (select) {
+      syncLanguageFromGoogle();
+
       select.addEventListener('change', (event) => {
         const newLanguage = event.target.value;
         currentLanguage = newLanguage || defaultLanguage;
