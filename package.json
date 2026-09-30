@@ -5,6 +5,12 @@
   "type": "module",
   "main": "index.js",
   "types": "index.d.ts",
+  "scripts": {
+    "login": "npm login",
+    "check": "npm pack --dry-run",
+    "release:minor": "npm version minor && npm publish && git push --follow-tags",
+    "release:patch": "npm version patch && npm publish && git push --follow-tags"
+  },
   "keywords": [
     "google",
     "translate",
