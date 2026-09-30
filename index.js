@@ -6,6 +6,7 @@ let userOnLanguageChange = null;
 let availableLanguages = [];
 let customDictionary = {};
 let dictionaryTerms = [];
+let dictionaryObserver = null;
 
 export const TranslatorWidgetLayout = {
     SIMPLE: 'simple',
@@ -32,6 +33,9 @@ export function translatorWidget(config = {}) {
 
   restoreDictionaryTerms();
   customDictionary = dictionary && typeof dictionary === 'object' ? dictionary : {};
+
+  // Protect dictionary words on content rendered after the page was already translated
+  observeDictionaryTerms();
 
   // Wrap dictionary words before Google's script loads so a language restored
   // from Google's cookie is already protected when the engine auto-translates
@@ -66,6 +70,16 @@ export function translatorWidget(config = {}) {
   }
 
   window.initGoogleTranslateElement = function () {
+    // On a reload with a language restored from Google's cookie the page is translated
+    // the moment the element is created, so the dictionary terms have to be wrapped now:
+    // the routed content already exists here, unlike when translatorWidget() ran
+    const restoredLanguage = getPersistedLanguage();
+    if (restoredLanguage
+      && restoredLanguage !== defaultLanguage
+      && availableLanguages.some(lang => lang.code === restoredLanguage)) {
+      applyDictionaryTerms(restoredLanguage);
+    }
+
     new window.google.translate.TranslateElement({
       pageLanguage: defaultLanguage,
       includedLanguages: includedLanguages.join(','),
@@ -477,14 +491,33 @@ function matchReplacementCase(sourceWord, replacement) {
  * Runs before every translation so words are always protected in the source
  * language, regardless of what the page currently shows.
  */
+const DICTIONARY_SKIP_SELECTOR = 'script, style, textarea, select, option, noscript, [contenteditable], ' +
+  '.notranslate, .skiptranslate, .goog-text-highlight, font[style*="vertical-align"], #__gtw_helper';
+
 function applyDictionaryTerms(langCode) {
   restoreDictionaryTerms();
+  return wrapDictionaryTerms(langCode, document.body);
+}
+
+function isDictionaryTextCandidate(node) {
+  const el = node.parentElement;
+  if (!el || !node.nodeValue || !node.nodeValue.trim()) return false;
+  if (el.closest(DICTIONARY_SKIP_SELECTOR)) return false;
+  return true;
+}
+
+/**
+ * Wraps every dictionary word found under root so Google skips it, without touching
+ * terms wrapped somewhere else on the page. Returns true when something was wrapped.
+ */
+function wrapDictionaryTerms(langCode, root) {
+  if (!root) return false;
 
   const entry = customDictionary[langCode];
-  if (!entry) return;
+  if (!entry) return false;
 
   const keys = Object.keys(entry).filter(key => key && typeof entry[key] === 'string');
-  if (!keys.length) return;
+  if (!keys.length) return false;
 
   keys.sort((a, b) => b.length - a.length);
 
@@ -493,21 +526,60 @@ function applyDictionaryTerms(langCode) {
     'giu'
   );
 
-  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
-    acceptNode(node) {
-      const el = node.parentElement;
-      if (!el || !node.nodeValue || !node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
-      const skip = 'script, style, textarea, select, option, noscript, [contenteditable], ' +
-        '.notranslate, .skiptranslate, .goog-text-highlight, font[style*="vertical-align"], #__gtw_helper';
-      if (el.closest(skip)) return NodeFilter.FILTER_REJECT;
-      return NodeFilter.FILTER_ACCEPT;
-    }
+  const textNodes = [];
+
+  if (root.nodeType === Node.TEXT_NODE) {
+    if (isDictionaryTextCandidate(root)) textNodes.push(root);
+  } else {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+      acceptNode(node) {
+        return isDictionaryTextCandidate(node)
+          ? NodeFilter.FILTER_ACCEPT
+          : NodeFilter.FILTER_REJECT;
+      }
+    });
+
+    while (walker.nextNode()) textNodes.push(walker.currentNode);
+  }
+
+  let wrapped = false;
+  textNodes.forEach(node => {
+    if (wrapDictionaryMatches(node, pattern, entry)) wrapped = true;
   });
 
-  const textNodes = [];
-  while (walker.nextNode()) textNodes.push(walker.currentNode);
+  return wrapped;
+}
 
-  textNodes.forEach(node => wrapDictionaryMatches(node, pattern, entry));
+/**
+ * Dictionary terms added to the page after Google already translated it must be
+ * wrapped before the engine gets to them, otherwise their source words get
+ * translated and the custom replacement can no longer be shown.
+ */
+function observeDictionaryTerms() {
+  if (dictionaryObserver || !document.body) return;
+  if (!Object.keys(customDictionary).length) return;
+
+  dictionaryObserver = new MutationObserver((mutations) => {
+    const persisted = getPersistedLanguage();
+    const langCode = currentLanguage !== defaultLanguage ? currentLanguage : persisted;
+    if (!langCode || langCode === defaultLanguage || !customDictionary[langCode]) return;
+
+    const isTranslated = currentLanguage !== defaultLanguage;
+    let wrapped = false;
+
+    mutations.forEach(mutation => {
+      mutation.addedNodes.forEach(node => {
+        if (node.nodeType !== Node.ELEMENT_NODE && node.nodeType !== Node.TEXT_NODE) return;
+        if (wrapDictionaryTerms(langCode, node)) wrapped = true;
+      });
+    });
+
+    // Terms wrapped before the engine translated the page keep their source word
+    // until the initial swap runs, so only swap when the page is already translated
+    if (wrapped && isTranslated) swapDictionaryTerms(langCode);
+  });
+
+  dictionaryObserver.observe(document.body, { childList: true, subtree: true });
 }
 
 function wrapDictionaryMatches(node, pattern, entry) {
@@ -538,12 +610,13 @@ function wrapDictionaryMatches(node, pattern, entry) {
     matched = true;
   }
 
-  if (!matched) return;
+  if (!matched) return false;
   if (lastIndex < text.length) {
     fragment.appendChild(document.createTextNode(text.slice(lastIndex)));
   }
 
   node.parentNode.replaceChild(fragment, node);
+  return true;
 }
 
 function swapDictionaryTerms(langCode) {
