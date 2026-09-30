@@ -9,6 +9,12 @@ export interface TranslateConfig {
   defaultLanguage?: string;
   onLanguageChange?: (language: string, isDefault: boolean) => void;
   layout?: TranslatorWidgetLayout;
+  /**
+   * Per-language word overrides applied when translating to that language.
+   * Matching source words are skipped by Google and replaced with your text.
+   * Example: { en: { cita: 'appointment' } }
+   */
+  dictionary?: Record<string, Record<string, string>>;
 }
 
 export interface TranslatorWidget {

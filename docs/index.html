@@ -93,6 +93,19 @@
     </div>
     
     <div class="content">
+        <h2>Dictionary Test</h2>
+        <div class="notranslate" style="padding: 10px; background: #fff8e1; border: 1px solid #ffe082; border-radius: 6px;">
+            <p style="margin: 0 0 8px;"><strong>Custom dictionary overrides</strong> (these words are skipped by Google and replaced with your text):</p>
+            <ul style="margin: 0;">
+                <li>Translate to <strong>Español</strong>: <code>widget</code> → <code>complemento</code>, <code>sample</code> → <code>ejemplo</code>, <code>dropdown</code> → <code>menú desplegable</code></li>
+                <li>Translate to <strong>Français</strong>: <code>widget</code> → <code>gadget</code>, <code>language</code> → <code>langue</code></li>
+                <li>Translate to <strong>Deutsch</strong>: <code>widget</code> → <code>Modul</code>, <code>sample</code> → <code>Beispiel</code></li>
+            </ul>
+            <p style="margin: 8px 0 0; font-size: 13px; color: #666;">Words inside other words (e.g. <em>widgets</em>) must NOT be replaced. Switching back to English restores everything.</p>
+        </div>
+    </div>
+
+    <div class="content">
         <h2>Sample Content to Translate</h2>
         <p>This is a sample paragraph that will be translated when you select a different language from the dropdown above. The Google Translate widget is hidden, and you can use your own custom UI to control translations.</p>
         
@@ -147,6 +160,22 @@
                 includedLanguages: ['en', 'es', 'fr', 'de', 'it', 'pt', 'ko', 'ja'],
                 defaultLanguage: 'en',
                 layout: selectedLayout,
+                dictionary: {
+                    // target language → { source word on this page: custom word }
+                    es: {
+                        widget: 'complemento',
+                        sample: 'ejemplo',
+                        dropdown: 'menú desplegable'
+                    },
+                    fr: {
+                        widget: 'gadget',
+                        language: 'langue'
+                    },
+                    de: {
+                        widget: 'Modul',
+                        sample: 'Beispiel'
+                    }
+                },
                 onLanguageChange: (language, isDefault) => {
                     const status = document.getElementById('status');
                     const languageNames = {

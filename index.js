@@ -4,6 +4,8 @@ let currentLanguage = null;
 let defaultLanguage = 'en';
 let userOnLanguageChange = null;
 let availableLanguages = [];
+let customDictionary = {};
+let dictionaryTerms = [];
 
 export const TranslatorWidgetLayout = {
     SIMPLE: 'simple',
@@ -19,13 +21,28 @@ export function translatorWidget(config = {}) {
     onLanguageChange = null,
     layout = TranslatorWidgetLayout.SIMPLE,
     width = 'auto',
-    height = 'auto'
+    height = 'auto',
+    dictionary = {}
   } = config;
 
   defaultLanguage = configDefaultLanguage;
   currentLanguage = defaultLanguage;
   userOnLanguageChange = onLanguageChange;
   availableLanguages = languages.filter(lang => includedLanguages.includes(lang.code));
+
+  restoreDictionaryTerms();
+  customDictionary = dictionary && typeof dictionary === 'object' ? dictionary : {};
+
+  // Wrap dictionary words before Google's script loads so a language restored
+  // from Google's cookie is already protected when the engine auto-translates
+  // the page on load, before any of our code runs again
+  if (Object.keys(customDictionary).length) {
+    const persisted = getPersistedLanguage();
+    const shouldPreApply = persisted
+      && persisted !== defaultLanguage
+      && availableLanguages.some(lang => lang.code === persisted);
+    if (shouldPreApply) applyDictionaryTerms(persisted);
+  }
 
   // Keep the original spacing while only the text is translated
   preserveOriginalSpacing();
@@ -63,6 +80,8 @@ export function translatorWidget(config = {}) {
       // Google restores the last selected language from its own cookie when the page
       // loads, without dispatching a change event, so the state has to be seeded here
       syncLanguageFromGoogle();
+
+      swapDictionaryTerms(currentLanguage);
 
       renderLayouts(layout, element, width, height);
 
@@ -426,6 +445,126 @@ function hideGoogleElements() {
   document.head.appendChild(style);
 }
 
+function escapeRegExp(text) {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function lookupDictionaryEntry(entry, word) {
+  if (!entry) return null;
+  if (typeof entry[word] === 'string') return entry[word];
+
+  const lower = word.toLowerCase();
+  if (typeof entry[lower] === 'string') return entry[lower];
+
+  const key = Object.keys(entry).find(k => k.toLowerCase() === lower);
+  return key ? entry[key] : null;
+}
+
+function matchReplacementCase(sourceWord, replacement) {
+  if (!sourceWord || !replacement) return replacement;
+  const first = sourceWord[0];
+  if (first && first !== first.toLowerCase() && replacement[0] === replacement[0].toLowerCase()) {
+    return replacement[0].toUpperCase() + replacement.slice(1);
+  }
+  return replacement;
+}
+
+/**
+ * The dictionary maps a target language to source word overrides:
+ * { en: { cita: 'appointment' } }. Matching words are wrapped in a notranslate
+ * span that still holds the original text, so Google Translate skips them, and
+ * swapDictionaryTerms replaces that text with the custom word afterwards.
+ * Runs before every translation so words are always protected in the source
+ * language, regardless of what the page currently shows.
+ */
+function applyDictionaryTerms(langCode) {
+  restoreDictionaryTerms();
+
+  const entry = customDictionary[langCode];
+  if (!entry) return;
+
+  const keys = Object.keys(entry).filter(key => key && typeof entry[key] === 'string');
+  if (!keys.length) return;
+
+  keys.sort((a, b) => b.length - a.length);
+
+  const pattern = new RegExp(
+    '(^|[^\\p{L}\\p{N}])(' + keys.map(escapeRegExp).join('|') + ')(?![\\p{L}\\p{N}])',
+    'giu'
+  );
+
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+    acceptNode(node) {
+      const el = node.parentElement;
+      if (!el || !node.nodeValue || !node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
+      const skip = 'script, style, textarea, select, option, noscript, [contenteditable], ' +
+        '.notranslate, .skiptranslate, .goog-text-highlight, font[style*="vertical-align"], #__gtw_helper';
+      if (el.closest(skip)) return NodeFilter.FILTER_REJECT;
+      return NodeFilter.FILTER_ACCEPT;
+    }
+  });
+
+  const textNodes = [];
+  while (walker.nextNode()) textNodes.push(walker.currentNode);
+
+  textNodes.forEach(node => wrapDictionaryMatches(node, pattern, entry));
+}
+
+function wrapDictionaryMatches(node, pattern, entry) {
+  const text = node.nodeValue;
+  const fragment = document.createDocumentFragment();
+  let lastIndex = 0;
+  let match;
+  let matched = false;
+
+  pattern.lastIndex = 0;
+  while ((match = pattern.exec(text)) !== null) {
+    const word = match[2];
+    const replacement = lookupDictionaryEntry(entry, word);
+    if (replacement == null) continue;
+
+    const start = match.index + match[1].length;
+    if (start > lastIndex) {
+      fragment.appendChild(document.createTextNode(text.slice(lastIndex, start)));
+    }
+
+    const span = document.createElement('span');
+    span.className = 'notranslate gtw-dict-term';
+    span.textContent = word;
+    fragment.appendChild(span);
+    dictionaryTerms.push({ span, word });
+
+    lastIndex = start + word.length;
+    matched = true;
+  }
+
+  if (!matched) return;
+  if (lastIndex < text.length) {
+    fragment.appendChild(document.createTextNode(text.slice(lastIndex)));
+  }
+
+  node.parentNode.replaceChild(fragment, node);
+}
+
+function swapDictionaryTerms(langCode) {
+  const entry = customDictionary[langCode];
+  if (!entry) return;
+
+  dictionaryTerms.forEach(({ span, word }) => {
+    if (!span.isConnected) return;
+    const replacement = lookupDictionaryEntry(entry, word);
+    if (replacement != null) span.textContent = matchReplacementCase(word, replacement);
+  });
+}
+
+function restoreDictionaryTerms() {
+  dictionaryTerms.forEach(({ span, word }) => {
+    if (!span.parentNode) return;
+    span.parentNode.replaceChild(document.createTextNode(word), span);
+  });
+  dictionaryTerms = [];
+}
+
 function translateTo(langCode) {
     
     if (langCode === defaultLanguage) {
@@ -438,15 +577,28 @@ function translateTo(langCode) {
 function translate(langCode) {
   const select = document.querySelector('.goog-te-combo');
   if (select) {
+    applyDictionaryTerms(langCode);
     currentLanguage = langCode;
     select.value = langCode;
     select.dispatchEvent(new Event('change'));
+    swapDictionaryTerms(langCode);
   }
 }
 
 function goBackToOriginal() {
+  restoreDictionaryTerms();
+
   const iframe = document.querySelector('.skiptranslate iframe');
-  if (!iframe) return;
+  if (!iframe) {
+    if (currentLanguage !== defaultLanguage) {
+      currentLanguage = defaultLanguage;
+      updateLayouts();
+      if (userOnLanguageChange) {
+        try { userOnLanguageChange(currentLanguage, true); } catch (e) { /* noop */ }
+      }
+    }
+    return;
+  }
 
   const innerDoc = iframe.contentDocument || iframe.contentWindow.document;
   const restoreButtons = innerDoc.getElementsByTagName("button");

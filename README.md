@@ -147,6 +147,30 @@ See a live example in [my portfolio](https://vrosario-portafolio.web.app).
 | `defaultLanguage` | String | `'en'` | Default page language |
 | `layout` | TranslatorWidgetLayout | `SIMPLE` | Layout type (SIMPLE or CUSTOM) |
 | `onLanguageChange` | Function | `null` | Callback when language changes |
+| `dictionary` | Object | `{}` | Per-language word overrides, e.g. `{ en: { cita: 'appointment' } }` |
+
+## Custom Word Dictionary
+
+When translating to a language listed in `dictionary`, those source words are skipped by Google and replaced with your own text:
+
+```javascript
+translatorWidget({
+  element: 'google_translate',
+  defaultLanguage: 'es',
+  includedLanguages: ['es', 'en'],
+  dictionary: {
+    // When translating the Spanish page TO English, show "appointment"
+    // instead of whatever Google picks for "cita"
+    en: { cita: 'appointment', fecha: 'due date' }
+  }
+});
+```
+
+Notes:
+- The outer key is the **target** language; the inner key is the **source** word on the page.
+- Matching uses whole words only (case-insensitive); capitalized words keep their casing.
+- Dictionary words are wrapped in a `notranslate` span, so Google never translates them.
+- Words are only overridden for the languages they are listed under; other languages translate normally.
 
 ## Global Translator Object (Custom Layout)
 
